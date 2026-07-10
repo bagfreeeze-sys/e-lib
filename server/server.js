@@ -27,8 +27,7 @@ const io = new Server(httpServer, {
       "http://localhost:5173",
       "http://localhost:3000",
       "http://localhost:4173",
-      "https://e-libraryhub.netlify.app",
-      "https://jovial-dango-644119.netlify.app",
+"https://unrivaled-entremet-574dc2.netlify.app",
       "https://e-lib-k9tp.onrender.com"
     ],
     methods: ["GET", "POST"],
@@ -57,8 +56,7 @@ app.use(
       "http://localhost:5173",
       "http://localhost:3000",
       "http://localhost:4173",
-            "https://e-libraryhub.netlify.app",
-      "https://jovial-dango-644119.netlify.app",
+"https://unrivaled-entremet-574dc2.netlify.app",
       "https://e-lib-k9tp.onrender.com"
     ],
     credentials: true,

@@ -27,6 +27,7 @@ const io = new Server(httpServer, {
       "http://localhost:5173",
       "http://localhost:3000",
       "http://localhost:4173",
+      "https://e-libraryhub.netlify.app"
     ],
     methods: ["GET", "POST"],
   },

@@ -27,7 +27,7 @@ const io = new Server(httpServer, {
       "http://localhost:5173",
       "http://localhost:3000",
       "http://localhost:4173",
-"https://unrivaled-entremet-574dc2.netlify.app",
+"https://prismatic-gnome-01d704.netlify.app",
       "https://e-lib-k9tp.onrender.com"
     ],
     methods: ["GET", "POST"],
@@ -55,7 +55,7 @@ const clientOrigins = [
   process.env.CLIENT_URL,
   "http://localhost:5173",
   "http://localhost:3000",
-  "https://unrivaled-entremet-574dc2.netlify.app",
+  "https://prismatic-gnome-01d704.netlify.app",
   "http://localhost:4173",
 ].filter(Boolean);
 

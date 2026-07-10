@@ -56,6 +56,7 @@ const clientOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
   "https://prismatic-gnome-01d704.netlify.app",
+  "https://e-lib-k9tp.onrender.com",
   "http://localhost:4173",
 ].filter(Boolean);
 

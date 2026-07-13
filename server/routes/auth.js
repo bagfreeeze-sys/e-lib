@@ -11,13 +11,9 @@ const generateToken = (id) => {
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET is not configured");
   }
-  return jwt.sign(
-    { id },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: "30d",
-    },
-  );
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: "30d",
+  });
 };
 
 // @desc    Register new user
@@ -93,6 +89,149 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// @desc    Update current user's email
+// @route   PUT /api/auth/me/email
+// @access  Private
+router.put("/me/email", protect, async (req, res) => {
+  try {
+    const { email, currentPassword } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Please provide a new email" });
+    }
+
+    if (!currentPassword) {
+      return res
+        .status(400)
+        .json({ message: "Please confirm your password to change the email" });
+    }
+
+    const user = await User.findById(req.user._id).select("+password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Password is incorrect" });
+    }
+
+    const emailExists = await User.findOne({ email, _id: { $ne: user._id } });
+    if (emailExists) {
+      return res.status(400).json({ message: "This email is already in use" });
+    }
+
+    user.email = email;
+    await user.save();
+
+    res.json({
+      message: "Email updated successfully",
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @desc    Update current user's name
+// @route   PUT /api/auth/me/name
+// @access  Private
+router.put("/me/name", protect, async (req, res) => {
+  try {
+    const { name, currentPassword } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "Please provide a new name" });
+    }
+
+    if (!currentPassword) {
+      return res
+        .status(400)
+        .json({ message: "Please confirm your password to change the name" });
+    }
+
+    const user = await User.findById(req.user._id).select("+password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Password is incorrect" });
+    }
+
+    user.name = name;
+    await user.save();
+
+    res.json({
+      message: "Name updated successfully",
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @desc    Update current user's password
+// @route   PUT /api/auth/me/password
+// @access  Private
+router.put("/me/password", protect, async (req, res) => {
+  try {
+    const { currentPassword, password, confirmPassword } = req.body;
+
+    if (!password || !confirmPassword) {
+      return res
+        .status(400)
+        .json({ message: "Please provide your new password and confirmation" });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
+
+    if (password.length < 6) {
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters" });
+    }
+
+    const user = await User.findById(req.user._id).select("+password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+
+    user.password = password;
+    await user.save();
+
+    res.json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // @desc    Get current user
 // @route   GET /api/auth/me
 // @access  Private
@@ -106,7 +245,7 @@ router.get("/me", protect, async (req, res) => {
 router.get("/users", protect, admin, async (req, res) => {
   try {
     const users = await User.find({}).select("-password");
-    
+
     // Aggregate borrowing stats for each user
     const usersWithStats = await Promise.all(
       users.map(async (u) => {
@@ -118,7 +257,7 @@ router.get("/users", protect, admin, async (req, res) => {
             pendingRequestsCount: 0,
           };
         }
-        
+
         const activeBorrowsCount = await BorrowRequest.countDocuments({
           user: u._id,
           status: "approved",
@@ -141,7 +280,7 @@ router.get("/users", protect, admin, async (req, res) => {
           overdueBorrowsCount,
           pendingRequestsCount,
         };
-      })
+      }),
     );
 
     res.json(usersWithStats);

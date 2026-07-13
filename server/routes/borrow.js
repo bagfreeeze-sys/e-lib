@@ -43,13 +43,6 @@ router.post("/", protect, async (req, res) => {
 
     await syncOverdueRequests(req.user._id);
 
-    // Check if user is blocked
-    if (req.user.status === "blocked") {
-      return res.status(403).json({
-        message: "Your account is blocked. Please contact administrator.",
-      });
-    }
-
     // Check if book exists and is available
     const book = await Book.findById(bookId);
     if (!book) {
@@ -62,6 +55,7 @@ router.post("/", protect, async (req, res) => {
         .json({ message: "Book is not available for borrowing" });
     }
 
+    // Check if user has any unresolved borrows - must return all books first
     const unresolvedBorrow = await BorrowRequest.findOne({
       user: req.user._id,
       returnDate: null,
@@ -71,7 +65,7 @@ router.post("/", protect, async (req, res) => {
     if (unresolvedBorrow) {
       return res.status(400).json({
         message:
-          "You still have an active or overdue borrowed book. Return it before requesting another.",
+          "You have unreturned books. Please return all borrowed books before requesting new ones.",
       });
     }
 

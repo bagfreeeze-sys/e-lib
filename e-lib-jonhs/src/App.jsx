@@ -24,6 +24,11 @@ const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
 // Create auth context
 export const AuthContext = createContext(null);
 
+// Axios base URL for API requests
+axios.defaults.baseURL = import.meta.env.PROD
+  ? "https://e-lib-k9tp.onrender.com"
+  : "";
+
 // Axios interceptor
 axios.interceptors.request.use(
   (config) => {
@@ -107,12 +112,17 @@ function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const updateUser = (updatedUser) => {
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  };
+
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
   const value = useMemo(
-    () => ({ user, login, register, logout, theme, toggleTheme }),
+    () => ({ user, login, register, logout, updateUser, theme, toggleTheme }),
     [user, theme],
   );
 

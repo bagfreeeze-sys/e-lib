@@ -59,21 +59,43 @@
 
   /* Boarding Pass / Ticket styling */
   .ticket-stub {
-    background-image: radial-gradient(circle at 100% 50%, transparent 12px, var(--surface) 12px);
+    background-image: radial-gradient(
+      circle at 100% 50%,
+      transparent 12px,
+      var(--surface) 12px
+    );
   }
   .ticket-main {
-    background-image: radial-gradient(circle at 0% 50%, transparent 12px, var(--surface) 12px);
+    background-image: radial-gradient(
+      circle at 0% 50%,
+      transparent 12px,
+      var(--surface) 12px
+    );
   }
 
   /* Notifications bell shake animation */
   @keyframes bell-shake {
-    0% { transform: rotate(0); }
-    15% { transform: rotate(10deg); }
-    30% { transform: rotate(-10deg); }
-    45% { transform: rotate(5deg); }
-    60% { transform: rotate(-5deg); }
-    75% { transform: rotate(2deg); }
-    100% { transform: rotate(0); }
+    0% {
+      transform: rotate(0);
+    }
+    15% {
+      transform: rotate(10deg);
+    }
+    30% {
+      transform: rotate(-10deg);
+    }
+    45% {
+      transform: rotate(5deg);
+    }
+    60% {
+      transform: rotate(-5deg);
+    }
+    75% {
+      transform: rotate(2deg);
+    }
+    100% {
+      transform: rotate(0);
+    }
   }
   .bell-ring {
     animation: bell-shake 0.6s ease-in-out;
@@ -135,4 +157,3 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
-

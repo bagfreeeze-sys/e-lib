@@ -27,6 +27,8 @@ const io = new Server(httpServer, {
       "http://localhost:5173",
       "http://localhost:3000",
       "http://localhost:4173",
+      "https://e-libraryhube.netlify.app",
+      "https://e-lib-k9tp.onrender.com",
     ],
     methods: ["GET", "POST"],
   },
@@ -48,10 +50,15 @@ io.on("connection", (socket) => {
 });
 
 // Middleware
+
 const clientOrigins = [
   process.env.CLIENT_URL,
   "http://localhost:5173",
   "http://localhost:3000",
+
+  "https://e-libraryhube.netlify.app",
+  "https://e-lib-k9tp.onrender.com",
+
   "http://localhost:4173",
 ].filter(Boolean);
 
@@ -68,6 +75,7 @@ app.use(
 
       return callback(new Error(`CORS origin denied: ${origin}`), false);
     },
+
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],

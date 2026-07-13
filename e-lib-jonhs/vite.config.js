@@ -9,7 +9,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       "/api": {
-        target: "http://localhost:5000",
+        target: "https://e-lib-k9tp.onrender.com",
         changeOrigin: true,
         secure: false,
       },

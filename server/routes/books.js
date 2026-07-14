@@ -17,6 +17,9 @@ const normalizeAccNo = (accNo = "") =>
     .replace(/[^0-9A-Za-z]/g, "")
     .toUpperCase();
 
+const DELETE_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
+const bookDeletionTimers = new Map();
+
 const bookValidation = [
   body("title").trim().notEmpty().withMessage("Title is required"),
   body("author").trim().notEmpty().withMessage("Author is required"),
@@ -28,10 +31,37 @@ const bookValidation = [
   body("quantity").isInt({ min: 1 }).withMessage("Quantity must be at least 1"),
 ];
 
+const schedulePermanentDeletion = (bookId) => {
+  if (bookDeletionTimers.has(bookId)) return;
+
+  const timer = setTimeout(async () => {
+    try {
+      await Book.deleteOne({ _id: bookId, deletedAt: { $ne: null } });
+    } catch (error) {
+      console.error(
+        "Failed to permanently delete book after grace period:",
+        error,
+      );
+    } finally {
+      bookDeletionTimers.delete(bookId);
+    }
+  }, DELETE_AFTER_MS);
+
+  bookDeletionTimers.set(bookId, timer);
+};
+
+const cancelPermanentDeletion = (bookId) => {
+  const timer = bookDeletionTimers.get(bookId);
+  if (timer) {
+    clearTimeout(timer);
+    bookDeletionTimers.delete(bookId);
+  }
+};
+
 router.get("/", async (req, res) => {
   try {
     const { search } = req.query;
-    const query = {};
+    const query = { deletedAt: null };
 
     if (search) {
       query.$or = [
@@ -42,6 +72,17 @@ router.get("/", async (req, res) => {
       ];
     }
     const books = await Book.find(query).sort({ createdAt: -1 });
+    return res.json(books);
+  } catch (error) {
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get("/trash", protect, admin, async (_req, res) => {
+  try {
+    const books = await Book.find({ deletedAt: { $ne: null } }).sort({
+      deletedAt: -1,
+    });
     return res.json(books);
   } catch (error) {
     return res.status(500).json({ message: "Server error" });
@@ -84,7 +125,7 @@ router.post("/", protect, admin, bookValidation, async (req, res) => {
       coverImage,
     } = req.body;
     const accNoNormalized = normalizeAccNo(accNo);
-    const exists = await Book.findOne({ accNoNormalized });
+    const exists = await Book.findOne({ accNoNormalized, deletedAt: null });
     if (exists)
       return res
         .status(400)
@@ -120,6 +161,7 @@ router.put("/:id", protect, admin, async (req, res) => {
       const dupe = await Book.findOne({
         accNoNormalized: payload.accNoNormalized,
         _id: { $ne: book._id },
+        deletedAt: null,
       });
       if (dupe)
         return res
@@ -149,12 +191,75 @@ router.put("/:id", protect, admin, async (req, res) => {
   }
 });
 
+router.put("/:id/recover", protect, admin, async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id);
+    if (!book) return res.status(404).json({ message: "Book not found" });
+    if (!book.deletedAt) {
+      return res.status(400).json({ message: "Book is already active" });
+    }
+
+    book.deletedAt = null;
+    await book.save();
+    cancelPermanentDeletion(req.params.id);
+    return res.json({ message: "Book recovered successfully", book });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.put("/recover-all", protect, admin, async (_req, res) => {
+  try {
+    await Book.updateMany(
+      { deletedAt: { $ne: null } },
+      { $set: { deletedAt: null } },
+    );
+    return res.json({ message: "All deleted books recovered successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
 router.delete("/:id", protect, admin, async (req, res) => {
   try {
     const book = await Book.findById(req.params.id);
     if (!book) return res.status(404).json({ message: "Book not found" });
+
+    book.deletedAt = new Date();
+    await book.save();
+    schedulePermanentDeletion(book._id.toString());
+
+    return res.json({
+      message:
+        "Book moved to trash bin. It will be permanently deleted after 30 days.",
+      book,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.delete("/:id/permanent", protect, admin, async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id);
+    if (!book) return res.status(404).json({ message: "Book not found" });
+
     await Book.deleteOne({ _id: book._id });
-    return res.json({ message: "Book removed" });
+    cancelPermanentDeletion(req.params.id);
+    return res.json({ message: "Book deleted permanently" });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.delete("/trash", protect, admin, async (_req, res) => {
+  try {
+    const deletedBooks = await Book.find({ deletedAt: { $ne: null } });
+    for (const book of deletedBooks) {
+      cancelPermanentDeletion(book._id.toString());
+    }
+    await Book.deleteMany({ deletedAt: { $ne: null } });
+    return res.json({ message: "All deleted books were removed permanently" });
   } catch (error) {
     return res.status(500).json({ message: "Server error" });
   }
